@@ -1,9 +1,10 @@
 # ============================================
-# Log Analyzer - Step 3
-# Calculating outage duration from timestamps
+# Log Analyzer - Complete Version
 # ============================================
-
-from datetime import datetime   # NEW: Python's built-in time tool
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from datetime import datetime
 
 # Step 1: Open and read the file
 print("Opening log file...")
@@ -49,23 +50,14 @@ print("\n===== WARNINGS DETECTED =====")
 for warning in warning_lines:
     print(f"  ⚠️  {warning}")
 
-# Step 6: NEW — Calculate payment service outage duration
+# Step 6: Outage duration
 print("\n===== OUTAGE ANALYSIS =====")
-
-# We know from the logs:
-# 08:05:23 — payment service failed (ERROR)
-# 08:06:20 — payment service timeout (ERROR)
-# 09:01:15 — TIBCO reconnection attempt started
-
-# Let's calculate how long the payment outage lasted
-time_format = "%Y-%m-%d %H:%M:%S"   # tells Python how the date looks
-
+time_format      = "%Y-%m-%d %H:%M:%S"
 payment_down     = datetime.strptime("2024-01-15 08:05:23", time_format)
 payment_timeout  = datetime.strptime("2024-01-15 08:06:20", time_format)
 tibco_down       = datetime.strptime("2024-01-15 09:00:00", time_format)
 tibco_restored   = datetime.strptime("2024-01-15 09:02:30", time_format)
 
-# Calculate the difference
 payment_outage_seconds = (payment_timeout - payment_down).seconds
 tibco_outage_seconds   = (tibco_restored - tibco_down).seconds
 
@@ -74,8 +66,8 @@ print(f"  🔴 TIBCO EMS outage        : {tibco_outage_seconds} seconds ({tibco_
 print(f"\n  📊 Total errors     : {error_count}")
 print(f"  📊 Total warnings   : {warning_count}")
 
-# Step 7: Health score (simple calculation)
-total = len(lines)
+# Step 7: Health score
+total        = len(lines)
 health_score = round((info_count / total) * 100)
 print(f"\n  💚 System health score : {health_score}%")
 
@@ -85,3 +77,29 @@ elif health_score >= 50:
     print("  ⚠️  System status: DEGRADED")
 else:
     print("  🚨 System status: CRITICAL")
+
+# Step 8: Generate chart
+print("\n📊 Generating chart...")
+categories = ["INFO", "WARNING", "ERROR"]
+counts     = [info_count, warning_count, error_count]
+colors     = ["#2ecc71", "#f39c12", "#e74c3c"]
+
+plt.figure(figsize=(8, 5))
+bars = plt.bar(categories, counts, color=colors, width=0.5)
+
+for bar, count in zip(bars, counts):
+    plt.text(
+        bar.get_x() + bar.get_width() / 2,
+        bar.get_height() + 0.1,
+        str(count),
+        ha="center",
+        fontsize=14,
+        fontweight="bold"
+    )
+
+plt.title("Log Analysis Report — 2024-01-15", fontsize=16, fontweight="bold")
+plt.xlabel("Log Level", fontsize=13)
+plt.ylabel("Number of Entries", fontsize=13)
+plt.ylim(0, max(counts) + 2)
+plt.savefig("log_report.png")
+print("✅ Chart saved! Look for log_report.png in your project folder on the left.")
